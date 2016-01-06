@@ -4,7 +4,7 @@
 #define rLED 11
 #define gLED 12
 
-// Enter 4 digit pins in this list that have been converted to 32-bit MD5 hexes
+// Enter 4 digit PINs in this list that have been converted to 32-bit MD5 hexes
 String passwords[] = {"8685549650016d9e1d14bf972262450b", 
                       "fe7ecc4de28b2c83c016b5c6c2acd826", 
                       "926c11cc055de9b8d697b6a587d40c4d",
@@ -18,6 +18,7 @@ String guess;
 
 int tries;
 int pinLength = 4;
+int openTime = 5000;
 
 const byte ROWS = 4; // 4 rows
 const byte COLS = 3; // 3 columns
@@ -83,7 +84,7 @@ void openDoor(boolean s) {
     //TODO: Piezo and LCD feedback
     digitalWrite(rLED, LOW);
     digitalWrite(gLED, HIGH);
-    delay(3000);
+    delay(openTime);
     digitalWrite(gLED, LOW);
     digitalWrite(rLED, HIGH);
     resetGuess(0);
