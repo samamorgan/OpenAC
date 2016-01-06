@@ -4,7 +4,7 @@
 #define gLED 12
 
 // All strings in this array *MUST* be the same length, or code may break
-String passwords[] = {"4659", "4242", "5821", "2278", "9779", "5993", "5612", "end"};
+String passwords[] = {"0000", "1111", "2222", "3333", "4444", "5555", "6666", "end"};
 
 String guess;
 
