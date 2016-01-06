@@ -1,14 +1,23 @@
 #include <Keypad.h>
+#include <MD5.h>
 
 #define rLED 11
 #define gLED 12
 
-// All strings in this array *MUST* be the same length, or code may break
-String passwords[] = {"0000", "1111", "2222", "3333", "4444", "5555", "6666", "end"};
+// Enter 4 digit pins in this list that have been converted to 32-bit MD5 hexes
+String passwords[] = {"8685549650016d9e1d14bf972262450b", 
+                      "fe7ecc4de28b2c83c016b5c6c2acd826", 
+                      "926c11cc055de9b8d697b6a587d40c4d",
+                      "cc7e2b878868cbae992d1fb743995d8f",
+                      "8de4aa6f66a39065b3fac4aa58feaccd",
+                      "32e0bd1497aa43e02a42f47d9d6515ad",
+                      "6e8404c3b93a9527c8db241a1846599a",
+                      "end"};
 
 String guess;
 
 int tries;
+int pinLength = 4;
 
 const byte ROWS = 4; // 4 rows
 const byte COLS = 3; // 3 columns
@@ -29,10 +38,10 @@ byte colPins[COLS] = {8,7,6};
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 void setup() {
-  pinMode(12, OUTPUT);
   pinMode(11, OUTPUT);
-  Serial.begin(9600);
+  pinMode(12, OUTPUT);
   digitalWrite(rLED, HIGH);
+  Serial.begin(9600);
 }
 
 // Main loop
@@ -46,8 +55,7 @@ void loop() {
         break;
       default:
         guess = guess + String(key);
-        Serial.println("Pressed: " + String(key) + ", Guess: " + guess);
-        if (guess.length() == passwords[1].length()) {
+        if (guess.length() == pinLength) {
           tries++;
           checkPassword();
         }
@@ -97,8 +105,17 @@ void secure() {
 // Check the guessed password against the list of possible passwords
 void checkPassword() {
   int i;
+  char c[5];
+  guess.toCharArray(c, 5);
+  
+  // Convert guess to MD5 hash and hex encode for our string
+  unsigned char* hash=MD5::make_hash(c);
+  char *md5str = MD5::make_digest(hash, 16);
+  free(hash);
+  Serial.println(md5str);
+  
   while (passwords[i] != "end") {
-    if (passwords[i] == guess) {
+    if (passwords[i] == md5str) {
       openDoor(true);
       break;
     }
@@ -110,4 +127,5 @@ void checkPassword() {
   if (tries >= 3) {
     secure();
   }
+  free(md5str);
 }
