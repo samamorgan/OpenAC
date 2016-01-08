@@ -5,13 +5,13 @@
 #define gLED 12
 
 // Enter 4 digit PINs in this list that have been converted to 32-bit MD5 hexes
-String passwords[] = {"8685549650016d9e1d14bf972262450b", 
-                      "fe7ecc4de28b2c83c016b5c6c2acd826", 
-                      "926c11cc055de9b8d697b6a587d40c4d",
-                      "cc7e2b878868cbae992d1fb743995d8f",
-                      "8de4aa6f66a39065b3fac4aa58feaccd",
-                      "32e0bd1497aa43e02a42f47d9d6515ad",
-                      "6e8404c3b93a9527c8db241a1846599a",
+String passwords[] = {"ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf8eba4d7",
+                      "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6",
+                      "2f4011ca31d756ee52aa794fa11f9c1d54f0701969a9462607dcdf6abc8eaed9",
+                      "9106f1ec4a2142f02273d7a820b6fd53c612fdfbdf8626c96d65af38828e735e",
+                      "5c6ab6a10221871a18b25558a77a99d1324732e4d5ac403e0bed5d85acba24fd",
+                      "5a2398a2ea274d788e478bf17845d42aa0c9d5aa9c1415ba01156e8609d27dcd",
+                      "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8",
                       "end"};
 
 String guess;
