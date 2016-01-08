@@ -1,5 +1,5 @@
 #include <Keypad.h>
-#include <MD5.h>
+#include <Sha256.h>
 
 #define rLED 11
 #define gLED 12
@@ -64,6 +64,27 @@ void loop() {
   }
 }
 
+// Hashes a string with SHA-256
+String stringHash(String s) {
+  String t;
+  String h;
+  
+  //SHA-256 Attempt
+  uint8_t *hash;
+  Sha256.init();
+  Sha256.print(s);
+  hash = Sha256.result();
+  for (int i=0; i<=31; i++) {
+    h = String(hash[i], HEX);
+    if(h.length() < 2) {
+      t = t + "0";
+    }
+    t = t + h;
+  }
+
+  return t;
+}
+
 // Reset the guessed password, passing 1 for LED flash
 void resetGuess(int i) {
   if (i > 0) {
@@ -106,17 +127,10 @@ void secure() {
 // Check the guessed password against the list of possible passwords
 void checkPassword() {
   int i;
-  char c[5];
-  guess.toCharArray(c, 5);
-  
-  // Convert guess to MD5 hash and hex encode for our string
-  unsigned char* hash=MD5::make_hash(c);
-  char *md5str = MD5::make_digest(hash, 16);
-  free(hash);
-  Serial.println(md5str);
+  String hash = stringHash(guess);
   
   while (passwords[i] != "end") {
-    if (passwords[i] == md5str) {
+    if (passwords[i] == hash) {
       openDoor(true);
       break;
     }
@@ -128,5 +142,4 @@ void checkPassword() {
   if (tries >= 3) {
     secure();
   }
-  free(md5str);
 }
