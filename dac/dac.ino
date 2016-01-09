@@ -4,7 +4,8 @@
 #define rLED 11
 #define gLED 12
 
-// Enter 4 digit PINs in this list that have been converted to 32-bit MD5 hexes
+// Enter 4 digit PINs in this list that have been converted to 64-bit SHA-256 hexes
+// TODO: Move to PROGMEM
 String passwords[] = {"ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf8eba4d7",
                       "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6",
                       "2f4011ca31d756ee52aa794fa11f9c1d54f0701969a9462607dcdf6abc8eaed9",
@@ -14,7 +15,7 @@ String passwords[] = {"ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf
                       "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8",
                       "end"};
 
-String guess;
+String g;
 
 int tries;
 int pinLength = 4;
@@ -42,7 +43,6 @@ void setup() {
   pinMode(11, OUTPUT);
   pinMode(12, OUTPUT);
   digitalWrite(rLED, HIGH);
-  Serial.begin(9600);
 }
 
 // Main loop
@@ -52,11 +52,11 @@ void loop() {
     switch (key) {
       case '*':
       case '#':
-        resetGuess(2);
+        resetg(2);
         break;
       default:
-        guess = guess + String(key);
-        if (guess.length() == pinLength) {
+        g = g + String(key);
+        if (g.length() == pinLength) {
           tries++;
           checkPassword();
         }
@@ -65,14 +65,14 @@ void loop() {
 }
 
 // Hashes a string with SHA-256
-String stringHash(String s) {
+String stringHash() {
   String t;
   String h;
   
   //SHA-256 Attempt
   uint8_t *hash;
   Sha256.init();
-  Sha256.print(s);
+  Sha256.print(g);
   hash = Sha256.result();
   for (int i=0; i<=31; i++) {
     h = String(hash[i], HEX);
@@ -85,17 +85,17 @@ String stringHash(String s) {
   return t;
 }
 
-// Reset the guessed password, passing 1 for LED flash
-void resetGuess(int i) {
+// Reset the ged password, passing 1 for LED flash
+void resetg(int i) {
   if (i > 0) {
     digitalWrite(rLED, LOW);
     delay(100);
     digitalWrite(rLED, HIGH);
     delay(100);
-    resetGuess(i-1);
+    resetg(i-1);
   }
   else {
-    guess = "";
+    g = "";
   }
 }
 
@@ -108,26 +108,26 @@ void openDoor(boolean s) {
     delay(openTime);
     digitalWrite(gLED, LOW);
     digitalWrite(rLED, HIGH);
-    resetGuess(0);
+    resetg(0);
     tries = 0;
   }
   else {
     //TODO: Piezo and LCD feedback
-    resetGuess(2);
+    resetg(2);
   }
 }
 
 // Secure state that stops any input for an amount of time.
 void secure() {
   //TODO: Piezo and LCD feedback
-  resetGuess(20);
+  resetg(20);
   tries = 0;
 }
 
 // Check the guessed password against the list of possible passwords
 void checkPassword() {
   int i;
-  String hash = stringHash(guess);
+  String hash = stringHash();
   
   while (passwords[i] != "end") {
     if (passwords[i] == hash) {
