@@ -1,25 +1,27 @@
 #include <Keypad.h>
 #include <Sha256.h>
+#include <avr/pgmspace.h>
 
 #define rLED 11
 #define gLED 12
 
-// Enter 4 digit PINs in this list that have been converted to 64-bit SHA-256 hexes
-// TODO: Move to PROGMEM
-String passwords[] = {"ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf8eba4d7",
-                      "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6",
-                      "2f4011ca31d756ee52aa794fa11f9c1d54f0701969a9462607dcdf6abc8eaed9",
-                      "9106f1ec4a2142f02273d7a820b6fd53c612fdfbdf8626c96d65af38828e735e",
-                      "5c6ab6a10221871a18b25558a77a99d1324732e4d5ac403e0bed5d85acba24fd",
-                      "5a2398a2ea274d788e478bf17845d42aa0c9d5aa9c1415ba01156e8609d27dcd",
-                      "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8",
-                      "end"};
+// 4 digit PINs that have been converted to 64-bit SHA-256 hexes
+const char string0[] PROGMEM = "ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf8eba4d7";
+const char string1[] PROGMEM = "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6";
+const char string2[] PROGMEM = "2f4011ca31d756ee52aa794fa11f9c1d54f0701969a9462607dcdf6abc8eaed9";
+const char string3[] PROGMEM = "9106f1ec4a2142f02273d7a820b6fd53c612fdfbdf8626c96d65af38828e735e";
+const char string4[] PROGMEM = "5c6ab6a10221871a18b25558a77a99d1324732e4d5ac403e0bed5d85acba24fd";
+const char string5[] PROGMEM = "5a2398a2ea274d788e478bf17845d42aa0c9d5aa9c1415ba01156e8609d27dcd";
+const char string6[] PROGMEM = "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8";
+
+// Table to refer to strings
+const char* const string_table[] PROGMEM = {string0, string1, string2, string3, string4, string5, string6};
+
+char buffer[64];
 
 String g;
 
 int tries;
-int pinLength = 4;
-int openTime = 5000;
 
 const byte ROWS = 4; // 4 rows
 const byte COLS = 3; // 3 columns
@@ -52,27 +54,27 @@ void loop() {
     switch (key) {
       case '*':
       case '#':
-        resetg(2);
+        reset(2);
         break;
       default:
         g = g + String(key);
-        if (g.length() == pinLength) {
+        if (g.length() == 4) {
           tries++;
-          checkPassword();
+          checkPin(g);
         }
     }
   }
 }
 
 // Hashes a string with SHA-256
-String stringHash() {
+String hash(String s) {
   String t;
   String h;
   
   //SHA-256 Attempt
   uint8_t *hash;
   Sha256.init();
-  Sha256.print(g);
+  Sha256.print(s);
   hash = Sha256.result();
   for (int i=0; i<=31; i++) {
     h = String(hash[i], HEX);
@@ -86,13 +88,13 @@ String stringHash() {
 }
 
 // Reset the ged password, passing 1 for LED flash
-void resetg(int i) {
+void reset(int i) {
   if (i > 0) {
     digitalWrite(rLED, LOW);
     delay(100);
     digitalWrite(rLED, HIGH);
     delay(100);
-    resetg(i-1);
+    reset(i-1);
   }
   else {
     g = "";
@@ -105,41 +107,34 @@ void openDoor(boolean s) {
     //TODO: Piezo and LCD feedback
     digitalWrite(rLED, LOW);
     digitalWrite(gLED, HIGH);
-    delay(openTime);
+    delay(5000);
     digitalWrite(gLED, LOW);
     digitalWrite(rLED, HIGH);
-    resetg(0);
+    reset(0);
     tries = 0;
   }
   else {
     //TODO: Piezo and LCD feedback
-    resetg(2);
+    reset(2);
   }
 }
 
 // Secure state that stops any input for an amount of time.
 void secure() {
   //TODO: Piezo and LCD feedback
-  resetg(20);
+  reset(20);
   tries = 0;
 }
 
-// Check the guessed password against the list of possible passwords
-void checkPassword() {
-  int i;
-  String hash = stringHash();
+// Check the guessed pin against the list of possible passwords
+String checkPin(String s) {
+  s = hash(s);
   
-  while (passwords[i] != "end") {
-    if (passwords[i] == hash) {
-      openDoor(true);
-      break;
+  for (int i = 0; i < 6; i++) {
+    String test = strcpy_P(buffer, (char*)pgm_read_word(&(string_table[i])));
+    if (test == s) {
+      return s + " : " + buffer;
     }
-    i++;
   }
-  if (passwords[i] == "end") {
-    openDoor(false);
-  }
-  if (tries >= 3) {
-    secure();
-  }
+  return s + " : No Match";
 }
