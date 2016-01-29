@@ -72,7 +72,7 @@ void loop() {
       }
     }
   }
-  if (tries > 3) {
+  if (tries >= 3) {
     secure(20);
     tries = 0;
     guess = "";
