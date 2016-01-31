@@ -20,57 +20,70 @@
  
 */
  
- 
+#define DATA0 2
+#define DATA1 3
+#define GREEN_LED 4
+#define DOOR_STRIKE 5
+
 #define MAX_BITS 100                 // max number of bits 
-#define WEIGAND_WAIT_TIME  3000      // time to wait for another weigand pulse.  
- 
+#define WEIGAND_WAIT_TIME  3000      // time to wait for another weigand pulse. 
+
 unsigned char databits[MAX_BITS];    // stores all of the data bits
 unsigned char bitCount;              // number of bits currently captured
 unsigned char flagDone;              // goes low when data is currently being captured
 unsigned int weigand_counter;        // countdown until we assume there are no more bits
- 
-unsigned long facilityCode=0;        // decoded facility code
-unsigned long cardCode=0;            // decoded card code
+
+// Card array
+unsigned long cards[][2] = {
+  {21,15840},   // Sam
+  {21,15841},   // Josh
+  {21,15842},   // Bernie
+  {21,15843},   // Gary
+  {21,15844},   // Amanda
+  {21,15845},   // Josephine
+  {21,15846},   // Patrick
+  {21,15847},   // Bob
+  {21,15848},   // Dave
+};
  
 // interrupt that happens when INTO goes low (0 bit)
-void ISR_INT0()
-{
-  //Serial.print("0");   // uncomment this line to display raw binary
+void ISR_INT0() {
   bitCount++;
   flagDone = 0;
-  weigand_counter = WEIGAND_WAIT_TIME;  
+  weigand_counter = WEIGAND_WAIT_TIME;
  
 }
  
 // interrupt that happens when INT1 goes low (1 bit)
-void ISR_INT1()
-{
-  //Serial.print("1");   // uncomment this line to display raw binary
+void ISR_INT1() {
   databits[bitCount] = 1;
   bitCount++;
   flagDone = 0;
   weigand_counter = WEIGAND_WAIT_TIME;  
 }
  
-void setup()
-{
-  pinMode(13, OUTPUT);  // LED
-  pinMode(2, INPUT);     // DATA0 (INT0)
-  pinMode(3, INPUT);     // DATA1 (INT1)
- 
+void setup() {
+  pinMode(DATA0, INPUT);
+  pinMode(DATA1, INPUT);
+  pinMode(DOOR_STRIKE, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+  
+  digitalWrite(GREEN_LED, HIGH);
+  
   Serial.begin(9600);
-  Serial.println("RFID Readers");
- 
+  Serial.println("Reader Ready");
+  
   // binds the ISR functions to the falling edge of INTO and INT1
-  attachInterrupt(0, ISR_INT0, FALLING);  
+  attachInterrupt(0, ISR_INT0, FALLING);
   attachInterrupt(1, ISR_INT1, FALLING);
- 
- 
+  
   weigand_counter = WEIGAND_WAIT_TIME;
 }
  
-void loop()
-{
+void loop() {
+  unsigned long facilityCode=0;        // decoded facility code
+  unsigned long cardCode=0;            // decoded card code
+  
   // This waits to make sure that there have been no more data pulses before processing data
   if (!flagDone) {
     if (--weigand_counter == 0)
@@ -80,50 +93,40 @@ void loop()
   // if we have bits and we the weigand counter went out
   if (bitCount > 0 && flagDone) {
     unsigned char i;
- 
-    Serial.print("Read ");
-    Serial.print(bitCount);
-    Serial.print(" bits. ");
- 
+     
     // we will decode the bits differently depending on how many bits we have
-    // see www.pagemac.com/azure/data_formats.php for mor info
-    if (bitCount == 35)
-    {
+    // see www.pagemac.com/azure/data_formats.php for more info
+    if (bitCount == 35) {
       // 35 bit HID Corporate 1000 format
       // facility code = bits 2 to 14
-      for (i=2; i<14; i++)
-      {
+      for (i=2; i<14; i++) {
          facilityCode <<=1;
          facilityCode |= databits[i];
       }
  
       // card code = bits 15 to 34
-      for (i=14; i<34; i++)
-      {
+      for (i=14; i<34; i++) {
          cardCode <<=1;
          cardCode |= databits[i];
       }
  
-      printBits();
+      openDoor(checkCard(facilityCode, cardCode));
     }
-    else if (bitCount == 26)
-    {
+    else if (bitCount == 26) {
       // standard 26 bit format
       // facility code = bits 2 to 9
-      for (i=1; i<9; i++)
-      {
+      for (i=1; i<9; i++) {
          facilityCode <<=1;
          facilityCode |= databits[i];
       }
  
       // card code = bits 10 to 23
-      for (i=9; i<25; i++)
-      {
+      for (i=9; i<25; i++) {
          cardCode <<=1;
          cardCode |= databits[i];
       }
  
-      printBits();  
+      openDoor(checkCard(facilityCode, cardCode));
     }
     else {
       // you can add other formats if you want!
@@ -132,20 +135,47 @@ void loop()
  
      // cleanup and get ready for the next card
      bitCount = 0;
-     facilityCode = 0;
-     cardCode = 0;
-     for (i=0; i<MAX_BITS; i++) 
-     {
+     for (i=0; i<MAX_BITS; i++) {
        databits[i] = 0;
      }
   }
 }
- 
-void printBits()
-{
-      // I really hope you can figure out what this function does
-      Serial.print("FC = ");
-      Serial.print(facilityCode);
-      Serial.print(", CC = ");
-      Serial.println(cardCode); 
+
+// Open the door. "true" opens, "false"
+boolean openDoor(boolean s) {
+  if (s) {
+    digitalWrite(DOOR_STRIKE, HIGH);
+    digitalWrite(GREEN_LED, LOW);
+    delay(5000);
+    digitalWrite(DOOR_STRIKE, LOW);
+    digitalWrite(GREEN_LED, HIGH);
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+// Compares one card to another, returns true if matched
+boolean cardCompare(unsigned long card[2], unsigned long check[2]) {
+  if (card[0] == check[0]) {
+    if (card[1] == check[1]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+boolean checkCard(unsigned long f, unsigned long c) {
+  unsigned long card[] = {f,c};
+  int numCards = sizeof(cards)/sizeof(cards[0]);
+  
+  Serial.println(String(card[0]) + ", " + String(card[1]));
+  
+  for (int i = 0; i < numCards; i++) {
+    if (cardCompare(cards[i], card)) {
+      return true;
+    }
+  }
+  return false;
 }
