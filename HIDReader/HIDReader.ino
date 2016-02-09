@@ -1,7 +1,8 @@
 /*
  * HID RFID Reader Wiegand Interface for Arduino Uno
- * Written by Daniel Smith, 2012.01.30
- * www.pagemac.com
+ * Written by Sam Morgan, 2015.02.08
+ * Original HID Weigand interface by by Daniel Smith, 2012.01.30
+ *                                      www.pagemac.com
  *
  * This program will decode the wiegand data from a HID RFID Reader (or, theoretically,
  * any other device that outputs weigand data).
@@ -19,31 +20,52 @@
  * 35 bit formats, but you can easily add more.
  
 */
- 
-#define DATA0 2
-#define DATA1 3
-#define GREEN_LED 4
-#define DOOR_STRIKE 5
+
+#include <Sha256.h>
+#include <avr/pgmspace.h>
+
+#define DATA0 2                      // Wiegand bit 0 (green)
+#define DATA1 3                      // Wiegand bit 1 (white)
+#define GREEN_LED 4                  // Output to blink green LED
+#define DOOR_STRIKE 5                // Output to open door
 
 #define MAX_BITS 100                 // max number of bits 
-#define WEIGAND_WAIT_TIME  3000      // time to wait for another weigand pulse. 
+#define WEIGAND_WAIT_TIME  3000      // time to wait for another wiegand pulse. 
 
+// 4 digit PINs that have been converted to 64-bit SHA-256 hexes
+const char pin1[] PROGMEM = "ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf8eba4d7";
+const char pin2[] PROGMEM = "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6";
+const char pin3[] PROGMEM = "2f4011ca31d756ee52aa794fa11f9c1d54f0701969a9462607dcdf6abc8eaed9";
+const char pin4[] PROGMEM = "9106f1ec4a2142f02273d7a820b6fd53c612fdfbdf8626c96d65af38828e735e";
+const char pin5[] PROGMEM = "5c6ab6a10221871a18b25558a77a99d1324732e4d5ac403e0bed5d85acba24fd";
+const char pin6[] PROGMEM = "5a2398a2ea274d788e478bf17845d42aa0c9d5aa9c1415ba01156e8609d27dcd";
+const char pin7[] PROGMEM = "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8";
+
+// Table to point at PROGMEM PIN hashes
+const char* const string_table[] PROGMEM = {pin1, pin2, pin3, pin4, pin5, pin6, pin7};
+
+char buffer[64];
+
+// Weigand stuff
 unsigned char databits[MAX_BITS];    // stores all of the data bits
 unsigned char bitCount;              // number of bits currently captured
 unsigned char flagDone;              // goes low when data is currently being captured
 unsigned int weigand_counter;        // countdown until we assume there are no more bits
 
+String guess;
+int tries;
+
 // Card array
 unsigned long cards[][2] = {
-  {21,15840},   // Sam
-  {21,15841},   // Josh
-  {21,15842},   // Bernie
-  {21,15843},   // Gary
-  {21,15844},   // Amanda
-  {21,15845},   // Josephine
-  {21,15846},   // Patrick
-  {21,15847},   // Bob
-  {21,15848},   // Dave
+  {21,15840},
+  {21,15841},
+  {21,15842},
+  {21,15843},
+  {21,15844},
+  {21,15845},
+  {21,15846},
+  {21,15847},
+  {21,15848},
 };
  
 // interrupt that happens when INTO goes low (0 bit)
@@ -83,6 +105,7 @@ void setup() {
 void loop() {
   unsigned long facilityCode=0;        // decoded facility code
   unsigned long cardCode=0;            // decoded card code
+  unsigned long pin=0;
   
   // This waits to make sure that there have been no more data pulses before processing data
   if (!flagDone) {
@@ -90,7 +113,7 @@ void loop() {
       flagDone = 1;  
   }
  
-  // if we have bits and we the weigand counter went out
+  // if we have bits and we the wiegand counter went out
   if (bitCount > 0 && flagDone) {
     unsigned char i;
      
@@ -128,9 +151,26 @@ void loop() {
  
       openDoor(checkCard(facilityCode, cardCode));
     }
+    else if (bitCount == 4) {
+      // for keypad devices
+      // 4 bits per keypress
+      for (i=0; i<4; i++) {
+         pin <<=1;
+         pin |= databits[i];
+      }
+      guess = guess + String(pin);
+      if (guess.length() == 4) {
+        tries++;
+        if(openDoor(checkPin(guess))) {
+          tries = 0;
+        }
+        secure(2);
+        guess = "";
+      }
+    }
     else {
       // you can add other formats if you want!
-     Serial.println("Unable to decode."); 
+      Serial.println("Unable to decode.");
     }
  
      // cleanup and get ready for the next card
@@ -138,7 +178,33 @@ void loop() {
      for (i=0; i<MAX_BITS; i++) {
        databits[i] = 0;
      }
+     if (tries >= 3) {
+       secure(20);
+       tries = 0;
+       guess = "";
+     }     
   }
+}
+
+// Hashes a string with SHA-256
+String hash(String s) {
+  String t;
+  String h;
+  
+  //SHA-256 Attempt
+  uint8_t *hash;
+  Sha256.init();
+  Sha256.print(s);
+  hash = Sha256.result();
+  for (int i=0; i<=31; i++) {
+    h = String(hash[i], HEX);
+    if(h.length() < 2) {
+      t = t + "0";
+    }
+    t = t + h;
+  }
+
+  return t;
 }
 
 // Open the door. "true" opens, "false"
@@ -153,6 +219,17 @@ boolean openDoor(boolean s) {
   }
   else {
     return false;
+  }
+}
+
+// Secure the door for i*200 milliseconds
+void secure(int i) {
+  if (i > 0) {
+    digitalWrite(GREEN_LED, LOW);
+    delay(100);
+    digitalWrite(GREEN_LED, HIGH);
+    delay(100);
+    secure(i-1);
   }
 }
 
@@ -174,6 +251,21 @@ boolean checkCard(unsigned long f, unsigned long c) {
   
   for (int i = 0; i < numCards; i++) {
     if (cardCompare(cards[i], card)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Check the guessed pin against the list of possible passwords
+boolean checkPin(String s) {
+  s = hash(s);
+  int numPins = sizeof(string_table)/sizeof(string_table[0]);
+
+  Serial.println(s);
+  for (int i = 0; i < numPins; i++) {
+    String test = strcpy_P(buffer, (char*)pgm_read_word(&(string_table[i])));
+    if (test == s) {
       return true;
     }
   }
