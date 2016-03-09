@@ -33,26 +33,34 @@
 #define WEIGAND_WAIT_TIME  3000      // time to wait for another wiegand pulse. 
 
 // 4 digit PINs that have been converted to 64-bit SHA-256 hexes
-const char pin01[] PROGMEM = "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6";
-const char pin02[] PROGMEM = "9106f1ec4a2142f02273d7a820b6fd53c612fdfbdf8626c96d65af38828e735e";
-const char pin03[] PROGMEM = "5a2398a2ea274d788e478bf17845d42aa0c9d5aa9c1415ba01156e8609d27dcd";
-const char pin04[] PROGMEM = "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8";
-const char pin05[] PROGMEM = "937554b0f5ce7ea8254bfcdfc6f6133841ab7c416ceaa1f5de86b7dbec1b24d9";
-const char pin06[] PROGMEM = "196499f197648f9eb37ffafe41ba444d531d59784a3bcddd0e80e77bade487d1";
-const char pin07[] PROGMEM = "5c6ab6a10221871a18b25558a77a99d1324732e4d5ac403e0bed5d85acba24fd";
-const char pin08[] PROGMEM = "90b5bc7f03c840b2efddb22ffdfc37dd12cb391b49aa0fc8751726c04d32ff30";
-const char pin09[] PROGMEM = "24fd7e2735af185459f293eb8704789722c8e46ef86c880322577fe019bb829c";
-const char pin10[] PROGMEM = "ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf8eba4d7";
-const char pin11[] PROGMEM = "cbfad02f9ed2a8d1e08d8f74f5303e9eb93637d47f82ab6f1c15871cf8dd0481";
-const char pin12[] PROGMEM = "286c897eba57ce67e79fff80229d9eacddde784b29a18a1d47c17bade5ad1a08";
-const char pin13[] PROGMEM = "1c49f22f6de9bd15e5e566fa8983be4cfa4709abf0f95edf96dcd3d6249c2649";
-const char pin14[] PROGMEM = "2f4011ca31d756ee52aa794fa11f9c1d54f0701969a9462607dcdf6abc8eaed9";
-const char pin15[] PROGMEM = "eb5e19340837ae6d45ab28fa05cb781e34520a3cf8d0b996d3a3875bd50863b9";
+const char pin01[] PROGMEM = "2f4011ca31d756ee52aa794fa11f9c1d54f0701969a9462607dcdf6abc8eaed9"; // Sam Morgan
+const char pin02[] PROGMEM = "ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf8eba4d7"; // Joshua Henry
+const char pin03[] PROGMEM = "dc4aa707636ec734bb22a822b62592c85c668c511f10e98da810420c8d5d2181"; // Bernie Thompson
+const char pin04[] PROGMEM = "5c6ab6a10221871a18b25558a77a99d1324732e4d5ac403e0bed5d85acba24fd"; // Gary Zeller
+const char pin05[] PROGMEM = "6a34287a9fe2312a761bd5158586999535cbc2c83ded6817adeb8d394e0b9abd"; // Stephen McCray
+const char pin06[] PROGMEM = "09550794019a7c2092e5872e26a4cd2155868b8c427adb53734c8a9d4ea343d7"; // Josephine Kiu
+const char pin07[] PROGMEM = "286c897eba57ce67e79fff80229d9eacddde784b29a18a1d47c17bade5ad1a08"; // Patric Neumann
+const char pin08[] PROGMEM = "337e00526bf9896c0ee150da7b454d72a2ce2e56a13de48e31b30fe305cb556a"; // Bob Boerner
+const char pin09[] PROGMEM = "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8"; // Dave Connor
+const char pin10[] PROGMEM = "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6"; // Amanda Henry
+const char pin11[] PROGMEM = "26a020fdeb929b63b99ce0c66a95dec62364d84b3be7647b8453a0dbdce8d550"; // Bill Saltstein
+const char pin12[] PROGMEM = "937554b0f5ce7ea8254bfcdfc6f6133841ab7c416ceaa1f5de86b7dbec1b24d9"; // David Roberts
+const char pin13[] PROGMEM = "196499f197648f9eb37ffafe41ba444d531d59784a3bcddd0e80e77bade487d1"; // David Washburn
+const char pin14[] PROGMEM = "33c604aed594a9618f582adf5c78809254b81770ae3638d628e3c3b5012c357a"; // Ivan Ferrari
+const char pin15[] PROGMEM = "24fd7e2735af185459f293eb8704789722c8e46ef86c880322577fe019bb829c"; // Jordan Welch
+const char pin16[] PROGMEM = "cbfad02f9ed2a8d1e08d8f74f5303e9eb93637d47f82ab6f1c15871cf8dd0481"; // Kayla Ostasiewski
+const char pin17[] PROGMEM = "179f912d515ddb97a08feeb4e376996148da3bb7cb5d974b813c8afbdc61662b"; // Michelle Perreira
+const char pin18[] PROGMEM = "fb1a382ee284b5583dd34f44245ab1444e083b4daec944fa533c19806ff3e90a"; // Sachiko Kuramura
 
 
 
 // Table to point at PROGMEM PIN hashes
-const char* const string_table[] PROGMEM = {pin01, pin02, pin03, pin04, pin05, pin06, pin07, pin08, pin09, pin10, pin11, pin12, pin13, pin14, pin15};
+const char* const string_table[] PROGMEM = {
+  pin01, pin02, pin03, pin04, pin05, 
+  pin06, pin07, pin08, pin09, pin10, 
+  pin11, pin12, pin13, pin14, pin15,
+  pin16, pin17, pin18
+};
 
 char buffer[64];
 
@@ -221,7 +229,7 @@ String hash(String s) {
   return t;
 }
 
-// Open the door. "true" opens, "false"
+// Open the door. True opens and returns true, false returns false.
 boolean openDoor(boolean s) {
   if (s) {
     digitalWrite(DOOR_STRIKE, HIGH);
