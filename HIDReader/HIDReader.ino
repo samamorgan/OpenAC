@@ -51,6 +51,8 @@ const char pin15[] PROGMEM = "24fd7e2735af185459f293eb8704789722c8e46ef86c880322
 const char pin16[] PROGMEM = "cbfad02f9ed2a8d1e08d8f74f5303e9eb93637d47f82ab6f1c15871cf8dd0481"; // Kayla Ostasiewski
 const char pin17[] PROGMEM = "179f912d515ddb97a08feeb4e376996148da3bb7cb5d974b813c8afbdc61662b"; // Michelle Perreira
 const char pin18[] PROGMEM = "fb1a382ee284b5583dd34f44245ab1444e083b4daec944fa533c19806ff3e90a"; // Sachiko Kuramura
+const char pin19[] PROGMEM = "bfc57feb2cbcfaf1c2f54172ff49665bbe60629e9cc1494b7a77a7b2baff3743"; // David Quesenberry
+const char pin20[] PROGMEM = "c05b79d959e2e32c57d847112c3f1d317ce69a97196ce1cf662836537979770b"; // Charlotte Young
 
 
 
@@ -59,7 +61,7 @@ const char* const string_table[] PROGMEM = {
   pin01, pin02, pin03, pin04, pin05, 
   pin06, pin07, pin08, pin09, pin10, 
   pin11, pin12, pin13, pin14, pin15,
-  pin16, pin17, pin18
+  pin16, pin17, pin18, pin19, pin20
 };
 
 char buffer[64];
@@ -75,15 +77,10 @@ int tries;
 
 // Card array
 unsigned long cards[][2] = {
-  {21,15840},
-  {21,15841},
-  {21,15842},
-  {21,15843},
-  {21,15844},
-  {21,15845},
-  {21,15846},
-  {21,15847},
-  {21,15848},
+  {21,15840}, {21,15841}, {21,15842}, {21,15843}, {21,15844},
+  {21,15845}, {21,15846}, {21,15847}, {21,15848}, {21,15849},
+  {21,15850}, {21,15851}, {21,15852}, {21,15853}, {21,15854},
+  {21,15855}, {21,15856}, {21,15857}, {21,15858}, {21,15859}
 };
  
 // interrupt that happens when INTO goes low (0 bit)
