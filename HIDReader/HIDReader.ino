@@ -38,22 +38,22 @@ const char pin02[] PROGMEM = "ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c
 const char pin03[] PROGMEM = "dc4aa707636ec734bb22a822b62592c85c668c511f10e98da810420c8d5d2181"; // Bernie Thompson
 const char pin04[] PROGMEM = "5c6ab6a10221871a18b25558a77a99d1324732e4d5ac403e0bed5d85acba24fd"; // Gary Zeller
 const char pin05[] PROGMEM = "6a34287a9fe2312a761bd5158586999535cbc2c83ded6817adeb8d394e0b9abd"; // Stephen McCray
-const char pin06[] PROGMEM = "09550794019a7c2092e5872e26a4cd2155868b8c427adb53734c8a9d4ea343d7"; // Josephine Kiu
-const char pin07[] PROGMEM = "286c897eba57ce67e79fff80229d9eacddde784b29a18a1d47c17bade5ad1a08"; // Patric Neumann
-const char pin08[] PROGMEM = "337e00526bf9896c0ee150da7b454d72a2ce2e56a13de48e31b30fe305cb556a"; // Bob Boerner
-const char pin09[] PROGMEM = "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8"; // Dave Connor
-const char pin10[] PROGMEM = "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6"; // Amanda Henry
-const char pin11[] PROGMEM = "26a020fdeb929b63b99ce0c66a95dec62364d84b3be7647b8453a0dbdce8d550"; // Bill Saltstein
-const char pin12[] PROGMEM = "937554b0f5ce7ea8254bfcdfc6f6133841ab7c416ceaa1f5de86b7dbec1b24d9"; // David Roberts
-const char pin13[] PROGMEM = "196499f197648f9eb37ffafe41ba444d531d59784a3bcddd0e80e77bade487d1"; // David Washburn
-const char pin14[] PROGMEM = "33c604aed594a9618f582adf5c78809254b81770ae3638d628e3c3b5012c357a"; // Ivan Ferrari
-const char pin15[] PROGMEM = "24fd7e2735af185459f293eb8704789722c8e46ef86c880322577fe019bb829c"; // Jordan Welch
-const char pin16[] PROGMEM = "cbfad02f9ed2a8d1e08d8f74f5303e9eb93637d47f82ab6f1c15871cf8dd0481"; // Kayla Ostasiewski
-const char pin17[] PROGMEM = "179f912d515ddb97a08feeb4e376996148da3bb7cb5d974b813c8afbdc61662b"; // Michelle Perreira
-const char pin18[] PROGMEM = "fb1a382ee284b5583dd34f44245ab1444e083b4daec944fa533c19806ff3e90a"; // Sachiko Kuramura
-const char pin19[] PROGMEM = "bfc57feb2cbcfaf1c2f54172ff49665bbe60629e9cc1494b7a77a7b2baff3743"; // David Quesenberry
-const char pin20[] PROGMEM = "c05b79d959e2e32c57d847112c3f1d317ce69a97196ce1cf662836537979770b"; // Charlotte Young
-const char pin21[] PROGMEM = "c75eca238ec250c28443dcb5bf69f9af1d465b62ebe19ef91874801b1b29bade"; // Andy DeLaVergne
+const char pin06[] PROGMEM = "286c897eba57ce67e79fff80229d9eacddde784b29a18a1d47c17bade5ad1a08"; // Patric Neumann
+const char pin07[] PROGMEM = "337e00526bf9896c0ee150da7b454d72a2ce2e56a13de48e31b30fe305cb556a"; // Bob Boerner
+const char pin08[] PROGMEM = "90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8"; // Dave Connor
+const char pin09[] PROGMEM = "0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6"; // Amanda Henry
+const char pin10[] PROGMEM = "26a020fdeb929b63b99ce0c66a95dec62364d84b3be7647b8453a0dbdce8d550"; // Bill Saltstein
+const char pin11[] PROGMEM = "937554b0f5ce7ea8254bfcdfc6f6133841ab7c416ceaa1f5de86b7dbec1b24d9"; // David Roberts
+const char pin12[] PROGMEM = "196499f197648f9eb37ffafe41ba444d531d59784a3bcddd0e80e77bade487d1"; // David Washburn
+const char pin13[] PROGMEM = "33c604aed594a9618f582adf5c78809254b81770ae3638d628e3c3b5012c357a"; // Ivan Ferrari
+const char pin14[] PROGMEM = "24fd7e2735af185459f293eb8704789722c8e46ef86c880322577fe019bb829c"; // Jordan Welch
+const char pin15[] PROGMEM = "cbfad02f9ed2a8d1e08d8f74f5303e9eb93637d47f82ab6f1c15871cf8dd0481"; // Kayla Ostasiewski
+const char pin16[] PROGMEM = "179f912d515ddb97a08feeb4e376996148da3bb7cb5d974b813c8afbdc61662b"; // Michelle Perreira
+const char pin17[] PROGMEM = "fb1a382ee284b5583dd34f44245ab1444e083b4daec944fa533c19806ff3e90a"; // Sachiko Kuramura
+const char pin18[] PROGMEM = "bfc57feb2cbcfaf1c2f54172ff49665bbe60629e9cc1494b7a77a7b2baff3743"; // David Quesenberry
+const char pin19[] PROGMEM = "c05b79d959e2e32c57d847112c3f1d317ce69a97196ce1cf662836537979770b"; // Charlotte Young
+const char pin20[] PROGMEM = "c75eca238ec250c28443dcb5bf69f9af1d465b62ebe19ef91874801b1b29bade"; // Andy DeLaVergne
+const char pin21[] PROGMEM = "d9a5223b761c375d1263e6e57ebec42d3e0fe3f6f283488d2eb204fb6ff17ee5"; // Jaimee Parker
 
 
 
@@ -80,10 +80,10 @@ int tries;
 // Card array
 unsigned long cards[][2] = {
   {21,15840}, {21,15841}, {21,15842}, {21,15843}, {21,15844},
-  {21,15845}, {21,15846}, {21,15847}, {21,15848}, {21,15849},
-  {21,15850}, {21,15851}, {21,15852}, {21,15853}, {21,15854},
-  {21,15855}, {21,15856}, {21,15857}, {21,15858}, {21,15859},
-  {21,15860},
+  {21,15846}, {21,15847}, {21,15848}, {21,15849}, {21,15850}, 
+  {21,15851}, {21,15852}, {21,15853}, {21,15854}, {21,15855}, 
+  {21,15856}, {21,15857}, {21,15858}, {21,15859}, {21,15860},
+  {21,15861}
 };
  
 // interrupt that happens when INTO goes low (0 bit)
