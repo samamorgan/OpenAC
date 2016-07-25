@@ -1,11 +1,11 @@
 /*
  * HID RFID Reader Wiegand Interface for Arduino
  * Written by Sam Morgan, 2015.02.10
- * Original HID Weigand interface by by Daniel Smith, 2012.01.30
+ * Original HID wiegand interface by by Daniel Smith, 2012.01.30
  *                                      www.pagemac.com
  *
  * This program will decode the wiegand data from a HID RFID Reader (or, theoretically,
- * any other device that outputs weigand data).
+ * any other device that outputs wiegand data).
  * The Wiegand interface has two data lines, DATA0 and DATA1.  These lines are normally held
  * high at 5V.  When a 0 is sent, DATA0 drops to 0V for a few μs.  When a 1 is sent, DATA1 drops
  * to 0V for a few μs.  There is usually a few ms between the pulses.
@@ -34,23 +34,23 @@
 #define GREEN_LED D3                  // Output to blink green LED
 #define DOOR_STRIKE D4                // Output to open door
 #define MAX_BITS 100                 // max number of bits 
-#define WEIGAND_WAIT_TIME  3000      // time to wait for another wiegand pulse.
+#define WIEGAND_WAIT_TIME  3000      // time to wait for another wiegand pulse.
 
 Ticker ticker;
 WiFiClient client;
 
 char buffer[64];
 
-// Weigand stuff
+// wiegand stuff
 unsigned char databits[MAX_BITS];    // stores all of the data bits
 unsigned char bitCount;              // number of bits currently captured
 unsigned char flagDone;              // goes low when data is currently being captured
-unsigned int weigand_counter;        // countdown until we assume there are no more bits
+unsigned int wiegand_counter;        // countdown until we assume there are no more bits
 
 // Phant stuff
 char server[] = "data.sparkfun.com";
-const String publicKey = "xx";
-const String privateKey = "xx";
+const String publicKey = "4JWM5n2Y9yFDadwxW57J";
+const String privateKey = "b5XgY96GNmUgxvypRbKk";
 const byte NUM_FIELDS = 3;
 const String fieldNames[NUM_FIELDS] = {"event", "location", "user"};
 
@@ -100,20 +100,150 @@ const char* const users[][3] = {
 
 int numUsers = sizeof(users)/sizeof(users[0]);
 
+void setup() {
+  pinMode(DATA0, INPUT);
+  pinMode(DATA1, INPUT);
+  pinMode(DOOR_STRIKE, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+  pinMode(BUILTIN_LED, OUTPUT);
+  digitalWrite(GREEN_LED, HIGH);
+
+  ticker.attach(0.6, tick);
+  
+  Serial.begin(115200);
+
+  WiFiManager wifiManager;
+  //wifiManager.resetSettings(); //reset settings - for testing
+  wifiManager.setAPCallback(configModeCallback);
+
+  if (!wifiManager.autoConnect()) {
+    Serial.println("failed to connect and hit timeout");
+    //reset and try again, or maybe put it to deep sleep
+    ESP.reset();
+    delay(1000);
+  }
+
+  Serial.println("Connected to WiFi");
+  ticker.detach();
+  
+  //keep LED on
+  digitalWrite(BUILTIN_LED, LOW);
+  
+  // binds the ISR functions to the falling edge of INTO and INT1
+  attachInterrupt(DATA0, ISR_INT0, FALLING);
+  attachInterrupt(DATA1, ISR_INT1, FALLING);
+  
+  wiegand_counter = WIEGAND_WAIT_TIME;
+  Serial.println("Reader Ready");
+}
+ 
+void loop() {
+  unsigned long facilityCode=0;        // decoded facility code
+  unsigned long cardCode=0;            // decoded card code
+  unsigned long pin=0;
+  
+  // This waits to make sure that there have been no more data pulses before processing data
+  if (!flagDone) {
+    if (--wiegand_counter == 0)
+      flagDone = 1;
+  }
+ 
+  // if we have bits and we the wiegand counter went out
+  if (bitCount > 0 && flagDone) {
+    unsigned char i;
+    // 35 bit HID Corporate 1000 format
+    if (bitCount == 35) {
+      // facility code = bits 2 to 14
+      for (i=2; i<14; i++) {
+         facilityCode <<=1;
+         facilityCode |= databits[i];
+      }
+      // card code = bits 15 to 34
+      for (i=14; i<34; i++) {
+         cardCode <<=1;
+         cardCode |= databits[i];
+      }
+    }
+    
+    // standard 26 bit format (H10301)
+    else if (bitCount == 26) {
+      // facility code = bits 2 to 9
+      for (i=1; i<9; i++) {
+         facilityCode <<=1;
+         facilityCode |= databits[i];
+      }
+      // card code = bits 10 to 23
+      for (i=9; i<25; i++) {
+         cardCode <<=1;
+         cardCode |= databits[i];
+      }
+    }
+    
+    // For keypad devices, 4 bits per keypress
+    else if (bitCount == 4) {
+      for (i=0; i<4; i++) {
+         pin <<=1;
+         pin |= databits[i];
+      }
+      guess = guess + String(pin);
+      if (pin == 10 || pin == 11) {
+        guess = "";
+        secure(2);
+      }
+    }
+
+    // Unknown format
+    else {
+      Serial.println("Unable to decode " + String(bitCount) + " bit formats.");
+    }
+
+    // Check if card is authorized
+    if (int user = checkUser(String(facilityCode)+String(cardCode)) != 0) {
+      openDoor();
+      tries = 0;
+      guess = "";
+      postData("PIN Entry", String(users[user][0]));
+    }
+
+    // Check if PIN is authorized
+    if (guess.length() >= 4) {
+      tries++;
+      if (int user = checkUser(hash(guess)) != 0) {
+        tries = 0;
+        openDoor();
+        postData("PIN Entry", String(users[user][0]));
+      }
+      secure(2);
+      guess = "";
+    }
+ 
+     // cleanup and get ready for the next card
+     bitCount = 0;
+     for (i=0; i<MAX_BITS; i++) {
+       databits[i] = 0;
+     }
+     if (tries >= 3) {
+       secure(20);
+       tries = 0;
+       guess = "";
+     }     
+  }
+}
+
 // interrupt that happens when INTO goes low (0 bit)
 void ISR_INT0() {
   bitCount++;
   flagDone = 0;
-  weigand_counter = WEIGAND_WAIT_TIME;
+  wiegand_counter = WIEGAND_WAIT_TIME;
  
 }
- 
+
 // interrupt that happens when INT1 goes low (1 bit)
 void ISR_INT1() {
   databits[bitCount] = 1;
   bitCount++;
   flagDone = 0;
-  weigand_counter = WEIGAND_WAIT_TIME;  
+  wiegand_counter = WIEGAND_WAIT_TIME;  
 }
 
 // LED tick function
@@ -132,143 +262,12 @@ void configModeCallback (WiFiManager *myWiFiManager) {
   ticker.attach(0.2, tick);
 }
 
-void setup() {
-  pinMode(DATA0, INPUT);
-  pinMode(DATA1, INPUT);
-  pinMode(DOOR_STRIKE, OUTPUT);
-  pinMode(GREEN_LED, OUTPUT);
-  pinMode(BUILTIN_LED, OUTPUT);
-
-  ticker.attach(0.6, tick);
-  
-  digitalWrite(GREEN_LED, HIGH);
-  
-  Serial.begin(115200);
-
-  WiFiManager wifiManager;
-  //wifiManager.resetSettings(); //reset settings - for testing
-  wifiManager.setAPCallback(configModeCallback);
-
-  //fetches ssid and pass and tries to connect
-  //if it does not connect it starts an access point with the specified name
-  //here  "AutoConnectAP"
-  //and goes into a blocking loop awaiting configuration
-  if (!wifiManager.autoConnect()) {
-    Serial.println("failed to connect and hit timeout");
-    //reset and try again, or maybe put it to deep sleep
-    ESP.reset();
-    delay(1000);
-  }
-
-  Serial.println("Connected to WiFi");
-  ticker.detach();
-  //keep LED on
-  digitalWrite(BUILTIN_LED, LOW);
-  
-  // binds the ISR functions to the falling edge of INTO and INT1
-  attachInterrupt(DATA0, ISR_INT0, FALLING);
-  attachInterrupt(DATA1, ISR_INT1, FALLING);
-  
-  weigand_counter = WEIGAND_WAIT_TIME;
-  Serial.println("Reader Ready");
-  Serial.println("Users: " + String(numUsers));
-}
- 
-void loop() {
-  unsigned long facilityCode=0;        // decoded facility code
-  unsigned long cardCode=0;            // decoded card code
-  unsigned long pin=0;
-  
-  // This waits to make sure that there have been no more data pulses before processing data
-  if (!flagDone) {
-    if (--weigand_counter == 0)
-      flagDone = 1;  
-  }
- 
-  // if we have bits and we the wiegand counter went out
-  if (bitCount > 0 && flagDone) {
-    unsigned char i;
-     
-    // we will decode the bits differently depending on how many bits we have
-    // see www.pagemac.com/azure/data_formats.php for more info
-    if (bitCount == 35) {
-      // 35 bit HID Corporate 1000 format
-      // facility code = bits 2 to 14
-      for (i=2; i<14; i++) {
-         facilityCode <<=1;
-         facilityCode |= databits[i];
-      }
- 
-      // card code = bits 15 to 34
-      for (i=14; i<34; i++) {
-         cardCode <<=1;
-         cardCode |= databits[i];
-      }
- 
-      openDoor(checkCard(facilityCode, cardCode));
-    }
-    else if (bitCount == 26) {
-      // standard 26 bit format
-      // facility code = bits 2 to 9
-      for (i=1; i<9; i++) {
-         facilityCode <<=1;
-         facilityCode |= databits[i];
-      }
- 
-      // card code = bits 10 to 23
-      for (i=9; i<25; i++) {
-         cardCode <<=1;
-         cardCode |= databits[i];
-      }
- 
-      openDoor(checkCard(facilityCode, cardCode));
-    }
-    else if (bitCount == 4) {
-      // for keypad devices
-      // 4 bits per keypress
-      for (i=0; i<4; i++) {
-         pin <<=1;
-         pin |= databits[i];
-      }
-      guess = guess + String(pin);
-      if (pin == 10 || pin == 11) {
-        guess = "";
-        secure(2);
-      }
-      if (guess.length() >= 4) {
-        tries++;
-        if(openDoor(checkPin(guess))) {
-          tries = 0;
-        }
-        secure(2);
-        guess = "";
-      }
-    }
-    else {
-      // Unknown format
-      Serial.println("Unable to decode " + String(bitCount) + " bit formats.");
-    }
- 
-     // cleanup and get ready for the next card
-     bitCount = 0;
-     for (i=0; i<MAX_BITS; i++) {
-       databits[i] = 0;
-     }
-     if (tries >= 3) {
-       secure(20);
-       tries = 0;
-       guess = "";
-     }     
-  }
-}
-
-void postData(String event, String location, String user) {
+void postData(String event, String user) {
   //URL encode spaces  
   event.replace(" ", "%20");
-  location.replace(" ", "%20");
   user.replace(" ", "%20");
   
-  String fieldData[NUM_FIELDS] = {event, location, user};
+  String fieldData[NUM_FIELDS] = {event, String(ESP.getChipId()), user};
   String request;
   
   // Make a TCP connection to remote host
@@ -323,18 +322,12 @@ String hash(String s) {
 }
 
 // Open the door. True opens and returns true, false returns false.
-boolean openDoor(boolean s) {
-  if (s) {
-    digitalWrite(DOOR_STRIKE, HIGH);
-    digitalWrite(GREEN_LED, LOW);
-    delay(5000);
-    digitalWrite(DOOR_STRIKE, LOW);
-    digitalWrite(GREEN_LED, HIGH);
-    return true;
-  }
-  else {
-    return false;
-  }
+void openDoor() {
+  digitalWrite(DOOR_STRIKE, HIGH);
+  digitalWrite(GREEN_LED, LOW);
+  delay(5000);
+  digitalWrite(DOOR_STRIKE, LOW);
+  digitalWrite(GREEN_LED, HIGH);
 }
 
 // Secure the door for i*200 milliseconds
@@ -348,40 +341,13 @@ void secure(int i) {
   }
 }
 
-// Compares one card to another, returns true if matched
-boolean cardCompare(unsigned long card[2], unsigned long check[2]) {
-  if (card[0] == check[0]) {
-    if (card[1] == check[1]) {
-      return true;
-    }
-  }
-  return false;
-}
-
-boolean checkCard(unsigned long f, unsigned long c) {
-  String card = String(f)+String(c);
-  Serial.println(card);
-  
+int checkUser(String s) {
   for (int i = 0; i < numUsers; i++) {
-    String test = users[i][1];
-    if (test == card) {
-      postData("Card Entry", String(ESP.getChipId()), String(users[i][0]));
-      return true;
+    String card = users[i][1];
+    String pin = users[i][2];
+    if (s == card || s == pin) {
+      return i;
     }
   }
-  return false;
-}
-
-boolean checkPin(String s) {
-  s = hash(s);
-
-  Serial.println(s);
-  for (int i = 0; i < numUsers; i++) {
-    String test = users[i][2];
-    if (test == s) {
-      postData("PIN Entry", String(ESP.getChipId()), String(users[i][0]));
-      return true;
-    }
-  }
-  return false;
+  return 0;
 }
