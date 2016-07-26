@@ -98,8 +98,6 @@ const char* const users[][3] = {
   {"Olivia Corrin","2115875","e68adee72e4d3c421f15cc33523be1c38208e4489b91d5e426503d99c5a7d790"}
 };
 
-int numUsers = sizeof(users)/sizeof(users[0]);
-
 void setup() {
   pinMode(DATA0, INPUT);
   pinMode(DATA1, INPUT);
@@ -138,9 +136,9 @@ void setup() {
 }
  
 void loop() {
-  unsigned long facilityCode=0;        // decoded facility code
-  unsigned long cardCode=0;            // decoded card code
-  unsigned long pin=0;
+  unsigned long facilityCode = 0;        // decoded facility code
+  unsigned long cardCode = 0;            // decoded card code
+  unsigned long pin = 0;
   
   // This waits to make sure that there have been no more data pulses before processing data
   if (!flagDone) {
@@ -149,7 +147,7 @@ void loop() {
   }
  
   // if we have bits and we the wiegand counter went out
-  if (bitCount > 0 && flagDone) {
+  if (bitCount && flagDone) {
     unsigned char i;
     // 35 bit HID Corporate 1000 format
     if (bitCount == 35) {
@@ -198,20 +196,22 @@ void loop() {
     }
 
     // Check if card is authorized
-    if (int user = checkUser(String(facilityCode)+String(cardCode)) != 0) {
-      openDoor();
-      tries = 0;
-      guess = "";
-      postData("PIN Entry", String(users[user][0]));
+    if (facilityCode && cardCode) {
+      if (int user = checkUser(String(facilityCode)+String(cardCode))) {
+        openDoor();
+        tries = 0;
+        guess = "";
+        postData("PIN Entry", String(users[user-1][0]));
+      }
     }
 
     // Check if PIN is authorized
     if (guess.length() >= 4) {
       tries++;
-      if (int user = checkUser(hash(guess)) != 0) {
+      if (int user = checkUser(hash(guess))) {
         tries = 0;
         openDoor();
-        postData("PIN Entry", String(users[user][0]));
+        postData("PIN Entry", String(users[user-1][0]));
       }
       secure(2);
       guess = "";
@@ -342,12 +342,14 @@ void secure(int i) {
 }
 
 int checkUser(String s) {
-  for (int i = 0; i < numUsers; i++) {
+  for (int i = 0; i < sizeof(users)/sizeof(users[0]); i++) {
     String card = users[i][1];
     String pin = users[i][2];
+    Serial.println(pin + ", " + card);
     if (s == card || s == pin) {
-      return i;
+      return i+1;
     }
   }
+  Serial.println(0);
   return 0;
 }
