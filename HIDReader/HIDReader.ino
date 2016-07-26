@@ -201,7 +201,7 @@ void loop() {
         openDoor();
         tries = 0;
         guess = "";
-        postData("PIN Entry", String(users[user-1][0]));
+        postData("Card Entry", String(users[user-1][0]));
       }
     }
 
