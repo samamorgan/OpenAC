@@ -345,7 +345,6 @@ int checkUser(String s) {
   for (int i = 0; i < sizeof(users)/sizeof(users[0]); i++) {
     String card = users[i][1];
     String pin = users[i][2];
-    Serial.println(pin + ", " + card);
     if (s == card || s == pin) {
       return i+1;
     }
