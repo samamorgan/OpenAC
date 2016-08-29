@@ -271,7 +271,7 @@ void postData(String event, String user) {
     for (int i=0; i<NUM_FIELDS; i++) {
       request = request + "&" + fieldNames[i] + "=" + fieldData[i];
     }
-    request = request + "&timezone=	America/Los_Angeles"+ " HTTP/1.1";
+    request = request + "&timezone=America/Los_Angeles"+ " HTTP/1.1";
 
     client.println(request);
     client.print("Host: ");
