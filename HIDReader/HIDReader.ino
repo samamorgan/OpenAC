@@ -82,20 +82,15 @@ const char* const users[][3] = {
   {"Jaimee Parker","2115861","d9a5223b761c375d1263e6e57ebec42d3e0fe3f6f283488d2eb204fb6ff17ee5"},
   {"Gina Saifullah","2115876","b3658670d2a52e2c9af9900e5c34acaae4009113569447616ce7932ba67496d7"},
   {"Ritu Java","2115845","eb43272640b269219a01caf99c5a4122d6edc0916d45ac13c0ce80ca3ad2def0"},
+  {"Robert Furgeson","2115869","0b0829e2c11114e877eaaf3115a09f8abe8c3a1bcc9be27925f4df79ce964785"},
   //INTERNS
   {"Justin Taylor","2115862","a19fbf8bf0530ca46179b803a8234f56276f21c0e7dc2f84c682924b95de5801"},
   {"Marissa Krantz","2115863","05758cd3875ad2171484c0026ccbb8adc210cd2d852407e3c7af1b751f35fdd6"},
-  {"Braden Anderson","2115864","8552b874fd59a64333e862c0a1eda2cf54fa62e3ebb0710c7fb6b82858ede198"},
-  {"Yuxin Fu","2115865","704240a9a309acf9c7df7febba1ec2723c6d2760a17d8b923af205e0d24cf0b9"},
   {"Bruce Oliver","2115866","7f489ad8915c281e41ae9affb4bdf12dd0b6746726632bb7301a6616ca7b04a0"},
-  {"Jia Wen Chan","2115867","2cec8cf0e321c284fa0c2ebef804aac18bf1cbb85546f89e7e3d0b6aa8b9d2cf"},
   {"Tyler Hartje","2115868","dde66966c76b6d0589037b6610b5cbcb58582228339a4b6117592d62874a8638"},
-  {"Robert Furgeson","2115869","0b0829e2c11114e877eaaf3115a09f8abe8c3a1bcc9be27925f4df79ce964785"},
-  {"Sebastian Bury","2115870","70fa656aa0391eb9ef7bbc9c7e6771ec09e7d5d7ab1fcbbde2480d21263ee79a"},
   {"Janani Sankarasubramanian","2115871","0fcfb0d3bee2a790484b7e48314198b48ec0b6ba5b4646533f2c2b488cb77f78"},
   {"Christopher Sibley","2115872","b9102e884eb1d49c328fbaa4b130e043a74a8749e573a4b6c68aa875f2e5e9e8"},
-  {"Nicholas Farn","2115873","abd3f2ed90f684b305ed7632ee24e58ed439de9158399ce9a5952281ef804b43"},
-  {"Olivia Corrin","2115875","e68adee72e4d3c421f15cc33523be1c38208e4489b91d5e426503d99c5a7d790"}
+  {"Nicholas Farn","2115873","abd3f2ed90f684b305ed7632ee24e58ed439de9158399ce9a5952281ef804b43"}
 };
 
 void setup() {
@@ -276,7 +271,7 @@ void postData(String event, String user) {
     for (int i=0; i<NUM_FIELDS; i++) {
       request = request + "&" + fieldNames[i] + "=" + fieldData[i];
     }
-    request = request + " HTTP/1.1";
+    request = request + "&timezone=	America/Los_Angeles"+ " HTTP/1.1";
 
     client.println(request);
     client.print("Host: ");
