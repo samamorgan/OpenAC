@@ -84,13 +84,8 @@ const char* const users[][3] = {
   {"Ritu Java","2115845","eb43272640b269219a01caf99c5a4122d6edc0916d45ac13c0ce80ca3ad2def0"},
   {"Robert Furgeson","2115869","0b0829e2c11114e877eaaf3115a09f8abe8c3a1bcc9be27925f4df79ce964785"},
   //INTERNS
-  {"Justin Taylor","2115862","a19fbf8bf0530ca46179b803a8234f56276f21c0e7dc2f84c682924b95de5801"},
-  {"Marissa Krantz","2115863","05758cd3875ad2171484c0026ccbb8adc210cd2d852407e3c7af1b751f35fdd6"},
-  {"Bruce Oliver","2115866","7f489ad8915c281e41ae9affb4bdf12dd0b6746726632bb7301a6616ca7b04a0"},
   {"Tyler Hartje","2115868","dde66966c76b6d0589037b6610b5cbcb58582228339a4b6117592d62874a8638"},
-  {"Janani Sankarasubramanian","2115871","0fcfb0d3bee2a790484b7e48314198b48ec0b6ba5b4646533f2c2b488cb77f78"},
-  {"Christopher Sibley","2115872","b9102e884eb1d49c328fbaa4b130e043a74a8749e573a4b6c68aa875f2e5e9e8"},
-  {"Nicholas Farn","2115873","abd3f2ed90f684b305ed7632ee24e58ed439de9158399ce9a5952281ef804b43"}
+  {"Suraj Saifullah","2115862","c027dd7b42f454d65ff27f572f0a23ecc72db4fb6f82098d95314583180bf479"},
 };
 
 void setup() {
