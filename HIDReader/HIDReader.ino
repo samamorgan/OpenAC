@@ -79,24 +79,26 @@ void setup() {
   wifiManager.setAPCallback(configModeCallback);
 
   if (!wifiManager.autoConnect()) {
-    Serial.println("failed to connect and hit timeout");
+    Serial.println("WiFi connection failed: timed out");
     //reset and try again, or maybe put it to deep sleep
     ESP.reset();
     delay(1000);
   }
-
-  Serial.println("Connected to WiFi");
   
   // Mount FS and check if formatted
   SPIFFS.begin();
   if(!SPIFFS.exists(fileName)) {
-    Serial.println("Please wait 30 secs for SPIFFS to be formatted");
+    Serial.print("Formatting SPIFFS...");
     SPIFFS.format();
-    Serial.println("Spiffs formatted");
+    Serial.println("Success");
   }
   // Update the authorized user list for the first time
+  Serial.print("Updating users...");
   if(!updateUsers()) {
-    Serial.println("User update failed");
+    Serial.println("Failed");
+  }
+  else {
+    Serial.println("Success"); 
   }
   
   // binds the ISR functions to the falling edge of INTO and INT1
@@ -185,7 +187,7 @@ void loop() {
     // Check if PIN is authorized
     if (guess.length() >= 4) {
       tries++;
-    String s = checkUser(hash(guess));
+      String s = checkUser(hash(guess));
       if (s != "") {
         tries = 0;
         openDoor();
@@ -364,6 +366,7 @@ String checkUser(String s) {
     user[2] = t;
     for(int i = 0; i < sizeof(user)/sizeof(user[0]); i++) {
       user[i].replace("\"","");
+      user[i].trim();
     }
     if (s == user[1] || s == user[2]) {
       result = user[0];
