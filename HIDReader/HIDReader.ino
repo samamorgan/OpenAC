@@ -23,16 +23,14 @@
 */
 
 #include <ESP8266Sha256.h>
-#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
-#include <DNSServer.h>
-#include <ESP8266WebServer.h>
-#include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
+#include <WiFiManager.h>             //https://github.com/tzapu/WiFiManager
 #include <Ticker.h>
+#include <FS.h>
 
-#define DATA0 D1                      // Wiegand bit 0 (green)
-#define DATA1 D2                      // Wiegand bit 1 (white)
-#define GREEN_LED D3                  // Output to blink green LED
-#define DOOR_STRIKE D4                // Output to open door
+#define DATA0 D1                     // Wiegand bit 0 (green)
+#define DATA1 D2                     // Wiegand bit 1 (white)
+#define GREEN_LED D3                 // Output to blink green LED
+#define DOOR_STRIKE D4               // Output to open door
 #define MAX_BITS 100                 // max number of bits 
 #define WIEGAND_WAIT_TIME  3000      // time to wait for another wiegand pulse.
 
@@ -48,45 +46,21 @@ unsigned char flagDone;              // goes low when data is currently being ca
 unsigned int wiegand_counter;        // countdown until we assume there are no more bits
 
 // Phant stuff
-char server[] = "data.sparkfun.com";
+const char pushHost[] = "data.sparkfun.com";
 const String publicKey = "4JWM5n2Y9yFDadwxW57J";
 const String privateKey = "b5XgY96GNmUgxvypRbKk";
 const byte NUM_FIELDS = 3;
 const String fieldNames[NUM_FIELDS] = {"event", "location", "user"};
 
+// S3 stuff
+const char getHost[] = "openac.s3.amazonaws.com";
+const char getFile[] = "OpenAC_Plugable.csv";
+String fileName = "/users.csv";
+
+const int httpPort = 80;
+
 String guess;
 int tries;
-
-// User array. {Name, Card, Hashed PIN}
-const char* const users[][3] = {
-  {"Sam Morgan","2115840","2f4011ca31d756ee52aa794fa11f9c1d54f0701969a9462607dcdf6abc8eaed9"},
-  {"Joshua Henry","2115841","ac8c1aa79856748c7dfc370cdd0f5d01841c36b8b22eabf69c4f495bf8eba4d7"},
-  {"Bernie Thompson","2115842","dc4aa707636ec734bb22a822b62592c85c668c511f10e98da810420c8d5d2181"},
-  {"Gary Zeller","2115843","5c6ab6a10221871a18b25558a77a99d1324732e4d5ac403e0bed5d85acba24fd"},
-  {"Stephen McCray","2115844","6a34287a9fe2312a761bd5158586999535cbc2c83ded6817adeb8d394e0b9abd"},
-  {"Patric Neumann","2115846","286c897eba57ce67e79fff80229d9eacddde784b29a18a1d47c17bade5ad1a08"},
-  {"Bob Boerner","2115847","337e00526bf9896c0ee150da7b454d72a2ce2e56a13de48e31b30fe305cb556a"},
-  {"Dave Connor","2115848","90fe2c25cc8b9530bd60a2b198ce85c53b06521848c81ba9ecb2a7f57e3c06d8"},
-  {"Amanda Henry","2115849","0315b4020af3eccab7706679580ac87a710d82970733b8719e70af9b57e7b9e6"},
-  {"Bill Saltstein","2115850","26a020fdeb929b63b99ce0c66a95dec62364d84b3be7647b8453a0dbdce8d550"},
-  {"David Roberts","2115851","937554b0f5ce7ea8254bfcdfc6f6133841ab7c416ceaa1f5de86b7dbec1b24d9"},
-  {"David Washburn","2115852","196499f197648f9eb37ffafe41ba444d531d59784a3bcddd0e80e77bade487d1"},
-  {"Ivan Ferrari","2115853","33c604aed594a9618f582adf5c78809254b81770ae3638d628e3c3b5012c357a"},
-  {"Jordan Welch","2115854","24fd7e2735af185459f293eb8704789722c8e46ef86c880322577fe019bb829c"},
-  {"Kayla Ostasiewski","2115855","cbfad02f9ed2a8d1e08d8f74f5303e9eb93637d47f82ab6f1c15871cf8dd0481"},
-  {"Michelle Perreira","2115856","179f912d515ddb97a08feeb4e376996148da3bb7cb5d974b813c8afbdc61662b"},
-  {"Sachiko Kuramura","2115857","fb1a382ee284b5583dd34f44245ab1444e083b4daec944fa533c19806ff3e90a"},
-  {"David Quesenberry","2115858","bfc57feb2cbcfaf1c2f54172ff49665bbe60629e9cc1494b7a77a7b2baff3743"},
-  {"Charlotte Young","2115859","c05b79d959e2e32c57d847112c3f1d317ce69a97196ce1cf662836537979770b"},
-  {"Andy DeLaVergne","2115860","c75eca238ec250c28443dcb5bf69f9af1d465b62ebe19ef91874801b1b29bade"},
-  {"Jaimee Parker","2115861","d9a5223b761c375d1263e6e57ebec42d3e0fe3f6f283488d2eb204fb6ff17ee5"},
-  {"Gina Saifullah","2115876","b3658670d2a52e2c9af9900e5c34acaae4009113569447616ce7932ba67496d7"},
-  {"Ritu Java","2115845","eb43272640b269219a01caf99c5a4122d6edc0916d45ac13c0ce80ca3ad2def0"},
-  {"Robert Furgeson","2115869","0b0829e2c11114e877eaaf3115a09f8abe8c3a1bcc9be27925f4df79ce964785"},
-  //INTERNS
-  {"Tyler Hartje","2115868","dde66966c76b6d0589037b6610b5cbcb58582228339a4b6117592d62874a8638"},
-  {"Suraj Saifullah","2115862","c027dd7b42f454d65ff27f572f0a23ecc72db4fb6f82098d95314583180bf479"},
-};
 
 void setup() {
   pinMode(DATA0, INPUT);
@@ -112,10 +86,18 @@ void setup() {
   }
 
   Serial.println("Connected to WiFi");
-  ticker.detach();
   
-  //keep LED on
-  digitalWrite(BUILTIN_LED, LOW);
+  // Mount FS and check if formatted
+  SPIFFS.begin();
+  if(!SPIFFS.exists(fileName)) {
+    Serial.println("Please wait 30 secs for SPIFFS to be formatted");
+    SPIFFS.format();
+    Serial.println("Spiffs formatted");
+  }
+  // Update the authorized user list for the first time
+  if(!updateUsers()) {
+    Serial.println("User update failed");
+  }
   
   // binds the ISR functions to the falling edge of INTO and INT1
   attachInterrupt(DATA0, ISR_INT0, FALLING);
@@ -123,6 +105,10 @@ void setup() {
   
   wiegand_counter = WIEGAND_WAIT_TIME;
   Serial.println("Reader Ready");
+  
+  //keep LED on
+  ticker.detach();
+  digitalWrite(BUILTIN_LED, LOW);
 }
  
 void loop() {
@@ -187,21 +173,23 @@ void loop() {
 
     // Check if card is authorized
     if (facilityCode && cardCode) {
-      if (int user = checkUser(String(facilityCode)+String(cardCode))) {
+	  String s = checkUser(String(facilityCode)+String(cardCode))
+      if (s != "") {
         openDoor();
         tries = 0;
         guess = "";
-        postData("Card Entry", String(users[user-1][0]));
+        postData("Card Entry", s);
       }
     }
 
     // Check if PIN is authorized
     if (guess.length() >= 4) {
       tries++;
-      if (int user = checkUser(hash(guess))) {
+	  String s = checkUser(hash(guess))
+      if (s != "") {
         tries = 0;
         openDoor();
-        postData("PIN Entry", String(users[user-1][0]));
+        postData("PIN Entry", s);
       }
       secure(2);
       guess = "";
@@ -261,7 +249,7 @@ void postData(String event, String user) {
   String request;
   
   // Make a TCP connection to remote host
-  if (client.connect(server, 80)) {
+  if (client.connect(pushHost, tcpPort)) {
     request = "GET /input/" + publicKey + "?private_key=" + privateKey;
     for (int i=0; i<NUM_FIELDS; i++) {
       request = request + "&" + fieldNames[i] + "=" + fieldData[i];
@@ -270,7 +258,7 @@ void postData(String event, String user) {
 
     client.println(request);
     client.print("Host: ");
-    client.println(server);
+    client.println(pushHost);
     client.println("Connection: close");
     client.println();
   }
@@ -331,14 +319,58 @@ void secure(int i) {
   }
 }
 
-int checkUser(String s) {
-  for (int i = 0; i < sizeof(users)/sizeof(users[0]); i++) {
-    String card = users[i][1];
-    String pin = users[i][2];
-    if (s == card || s == pin) {
-      return i+1;
+// Perform an HTTP GET request to a remote page, stores in local file
+int updateUsers() {
+  File f = SPIFFS.open(fileName, "w");
+  String search = "Connection: close\r\n\r\n";
+  
+  if (!client.connect(getHost, httpPort)) {
+    return false;
+  }
+  else if (!f) {
+    return false;
+  }
+  
+  // Make an HTTP GET request
+  client.print("GET /");
+  client.print(file);
+  client.println(" HTTP/1.1");
+  
+  client.print("Host: ");
+  client.println(getHost);
+  client.println(search);
+
+  String s = client.readString();
+  int i = s.indexOf(search);
+  
+  f.print(s.substring(i+search.length()));
+  f.close();
+
+  return true;
+}
+
+// Takes a card or PIN, checks against users in stored file
+String checkUser(String s) {
+  File f = SPIFFS.open(fileName, "r");
+  String user[3] = {"","",""};
+  String result;
+
+  while(f.available()) {
+    String t = f.readStringUntil('\n');
+    user[0] = t.substring(0,t.indexOf(","));
+    t = t.substring(t.indexOf(",")+1);
+    user[1] = t.substring(0,t.indexOf(","));
+    t = t.substring(t.indexOf(",")+1);
+    user[2] = t;
+    for(int i = 0; i < sizeof(user)/sizeof(user[0]); i++) {
+      user[i].replace("\"","");
+    }
+    if (s == user[1] || s == user[2]) {
+      result = user[0];
+      break;
     }
   }
-  Serial.println(0);
-  return 0;
+  f.close();
+  
+  return result;
 }
