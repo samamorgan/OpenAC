@@ -57,7 +57,7 @@ const char getHost[] = "openac.s3.amazonaws.com";
 const char getFile[] = "OpenAC_Plugable.csv";
 String fileName = "/users.csv";
 
-const int httpPort = 80;
+const int tcpPort = 80;
 
 String guess;
 int tries;
@@ -173,7 +173,7 @@ void loop() {
 
     // Check if card is authorized
     if (facilityCode && cardCode) {
-	  String s = checkUser(String(facilityCode)+String(cardCode))
+    String s = checkUser(String(facilityCode)+String(cardCode));
       if (s != "") {
         openDoor();
         tries = 0;
@@ -185,7 +185,7 @@ void loop() {
     // Check if PIN is authorized
     if (guess.length() >= 4) {
       tries++;
-	  String s = checkUser(hash(guess))
+    String s = checkUser(hash(guess));
       if (s != "") {
         tries = 0;
         openDoor();
@@ -324,7 +324,7 @@ int updateUsers() {
   File f = SPIFFS.open(fileName, "w");
   String search = "Connection: close\r\n\r\n";
   
-  if (!client.connect(getHost, httpPort)) {
+  if (!client.connect(getHost, tcpPort)) {
     return false;
   }
   else if (!f) {
@@ -333,7 +333,7 @@ int updateUsers() {
   
   // Make an HTTP GET request
   client.print("GET /");
-  client.print(file);
+  client.print(getFile);
   client.println(" HTTP/1.1");
   
   client.print("Host: ");
