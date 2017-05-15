@@ -33,6 +33,7 @@
 #define DOOR_STRIKE D4               // Output to open door
 #define MAX_BITS 100                 // max number of bits 
 #define WIEGAND_WAIT_TIME  3000      // time to wait for another wiegand pulse.
+#define DOOR_OPEN_TIME 5             // time for the door to stay unlocked
 
 Ticker ticker;
 WiFiClient client;
@@ -57,7 +58,10 @@ const char getHost[] = "openac.s3.amazonaws.com";
 const char getFile[] = "OpenAC_Plugable.csv";
 String fileName = "/users.csv";
 
+// Misc
 const int tcpPort = 80;
+
+unsigned long kpTime;
 
 String guess;
 int tries;
@@ -80,7 +84,7 @@ void setup() {
 
   if (!wifiManager.autoConnect()) {
     Serial.println("WiFi connection failed: timed out");
-    //reset and try again, or maybe put it to deep sleep
+    //reset and try again
     ESP.reset();
     delay(1000);
   }
@@ -117,7 +121,6 @@ void loop() {
   unsigned long facilityCode = 0;        // decoded facility code
   unsigned long cardCode = 0;            // decoded card code
   unsigned long pin = 0;
-  
   // This waits to make sure that there have been no more data pulses before processing data
   if (!flagDone) {
     if (--wiegand_counter == 0)
@@ -157,6 +160,7 @@ void loop() {
     
     // For keypad devices, 4 bits per keypress
     else if (bitCount == 4) {
+      kpTime = millis();
       for (i=0; i<4; i++) {
          pin <<=1;
          pin |= databits[i];
@@ -164,49 +168,56 @@ void loop() {
       guess = guess + String(pin);
       if (pin == 10 || pin == 11) {
         guess = "";
-        secure(2);
+        secure(1);
       }
     }
-
+    
     // Unknown format
     else {
       Serial.println("Unable to decode " + String(bitCount) + " bit formats.");
     }
-
-    // Check if card is authorized
-    if (facilityCode && cardCode) {
-    String s = checkUser(String(facilityCode)+String(cardCode));
-      if (s != "") {
-        openDoor();
-        tries = 0;
-        guess = "";
-        postData("Card Entry", s);
-      }
+    
+    // cleanup and get ready for the next card
+    bitCount = 0;
+    for (i=0; i<MAX_BITS; i++) {
+      databits[i] = 0;
     }
-
-    // Check if PIN is authorized
-    if (guess.length() >= 4) {
-      tries++;
-      String s = checkUser(hash(guess));
-      if (s != "") {
-        tries = 0;
-        openDoor();
-        postData("PIN Entry", s);
-      }
-      secure(2);
+  }
+  
+  // Check if card is authorized
+  if (facilityCode && cardCode) {
+    String card = String(facilityCode)+String(cardCode);
+    String s = checkUser(card);
+    if (s != "") {
+      openDoor();
+      tries = 0;
       guess = "";
+      postData("Card Entry", s);
     }
- 
-     // cleanup and get ready for the next card
-     bitCount = 0;
-     for (i=0; i<MAX_BITS; i++) {
-       databits[i] = 0;
-     }
-     if (tries >= 3) {
-       secure(20);
-       tries = 0;
-       guess = "";
-     }     
+    else {
+      postData("Unauthorized Card", card);
+    }
+  }
+
+  // Check if PIN is authorized
+  if (guess.length() >= 4) {
+    tries++;
+    String s = checkUser(hash(guess));
+    if (s != "") {
+      tries = 0;
+      openDoor();
+      postData("PIN Entry", s);
+    }
+    else {
+      postData("Unauthorized PIN", guess);
+    }
+    guess = "";
+  }
+  
+  if (millis() - kpTime >= 5000 && kpTime > 0) {
+    guess = "";
+    secure(1);
+    kpTime = 0;
   }
 }
 
@@ -228,8 +239,10 @@ void ISR_INT1() {
 
 // LED tick function
 void tick() {
-  int state = digitalRead(BUILTIN_LED);  // get the current state of GPIO1 pin
-  digitalWrite(BUILTIN_LED, !state);     // set pin to the opposite state
+  int state1 = digitalRead(BUILTIN_LED); // get the current state of pin
+  int state2 = digitalRead(GREEN_LED);
+  digitalWrite(BUILTIN_LED, !state1); // set pin to the opposite state
+  digitalWrite(GREEN_LED, !state2);
 }
 
 //gets called when WiFiManager enters configuration mode
@@ -243,6 +256,7 @@ void configModeCallback (WiFiManager *myWiFiManager) {
 }
 
 void postData(String event, String user) {
+  ticker.attach(0.1, tick);
   //URL encode spaces  
   event.replace(" ", "%20");
   user.replace(" ", "%20");
@@ -278,6 +292,10 @@ void postData(String event, String user) {
   }
   Serial.println();
   client.stop();
+
+  ticker.detach();
+  digitalWrite(BUILTIN_LED, LOW);
+  digitalWrite(GREEN_LED, HIGH);
 }
 
 // Hashes a string with SHA-256
@@ -305,24 +323,23 @@ String hash(String s) {
 void openDoor() {
   digitalWrite(DOOR_STRIKE, HIGH);
   digitalWrite(GREEN_LED, LOW);
-  delay(5000);
+  delay(DOOR_OPEN_TIME*1000);
   digitalWrite(DOOR_STRIKE, LOW);
   digitalWrite(GREEN_LED, HIGH);
 }
 
-// Secure the door for i*200 milliseconds
+// Secure the door for i seconds
 void secure(int i) {
-  if (i > 0) {
-    digitalWrite(GREEN_LED, LOW);
-    delay(100);
-    digitalWrite(GREEN_LED, HIGH);
-    delay(100);
-    secure(i-1);
-  }
+  ticker.attach(0.1, tick);
+  delay(i*1000);
+  ticker.detach();
+  digitalWrite(BUILTIN_LED, LOW);
+  digitalWrite(GREEN_LED, HIGH);
 }
 
 // Perform an HTTP GET request to a remote page, stores in local file
 int updateUsers() {
+  ticker.attach(0.1, tick);
   File f = SPIFFS.open(fileName, "w");
   String search = "Connection: close\r\n\r\n";
   
@@ -347,6 +364,10 @@ int updateUsers() {
   
   f.print(s.substring(i+search.length()));
   f.close();
+
+  ticker.detach();
+  digitalWrite(BUILTIN_LED, LOW);
+  digitalWrite(GREEN_LED, HIGH);
 
   return true;
 }
@@ -374,6 +395,10 @@ String checkUser(String s) {
     }
   }
   f.close();
+
+  if (result == "") {
+    updateUsers();
+  }
   
   return result;
 }
